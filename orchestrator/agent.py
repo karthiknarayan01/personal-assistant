@@ -19,6 +19,11 @@ _EXAMPLE_SPECIALIST_URL = os.environ.get(
     f"http://localhost:8001{AGENT_CARD_WELL_KNOWN_PATH}",
 )
 
+_JOB_AGENT_URL = os.environ.get(
+    "JOB_AGENT_CARD_URL",
+    f"http://localhost:8002{AGENT_CARD_WELL_KNOWN_PATH}",
+)
+
 # MCP tool: spawned automatically over stdio, no separate process to start.
 calendar_toolset = MCPToolset(
     connection_params=StdioConnectionParams(
@@ -44,6 +49,21 @@ example_specialist = RemoteA2aAgent(
     use_legacy=False,
 )
 
+# A2A sub-agent: github/job-application-agent, run separately
+# (`uvicorn a2a_server:a2a_app --port 8002` from that repo) before this
+# orchestrator starts.
+job_agent = RemoteA2aAgent(
+    name="job_agent",
+    description=(
+        "Searches Handshake for matching software engineering roles and "
+        "applies on the user's behalf, with a mandatory human review step "
+        "before any application is actually submitted. See "
+        "github/job-application-agent for setup and current limitations."
+    ),
+    agent_card=_JOB_AGENT_URL,
+    use_legacy=False,
+)
+
 root_agent = Agent(
     model="gemini-flash-latest",
     name="orchestrator",
@@ -54,5 +74,5 @@ root_agent = Agent(
     ),
     instruction=ORCHESTRATOR_INSTRUCTION,
     tools=[calendar_toolset],
-    sub_agents=[example_specialist],
+    sub_agents=[example_specialist, job_agent],
 )
