@@ -25,6 +25,10 @@ Currently registered:
   acknowledges and echoes back a task, to prove the orchestrator-to-
   sub-agent wiring works. Copy this package as the starting point for a
   real specialist. Runs as its own server process (see below).
+- **Sub-agent (A2A):** `job_agent` — in `sub_agents/job_agent/`. Searches
+  Handshake for matching software engineering roles and applies on the
+  user's behalf, with a mandatory human review-and-approve step before
+  any application is actually submitted. See "job_agent details" below.
 
 ## Setup
 
@@ -34,6 +38,7 @@ Currently registered:
    python3 -m venv .venv
    source .venv/bin/activate
    pip install -r requirements.txt
+   playwright install chromium
    ```
 
 2. **Get a Gemini API key** from [Google AI Studio](https://aistudio.google.com/apikey).
@@ -64,7 +69,16 @@ Currently registered:
    `credentials/token.json`. The agent itself never triggers this flow —
    it only reads the cached token.
 
-6. **Start the sub-agent's A2A server** (separate terminal, must be
+6. **Log in to Handshake once** for `job_agent` (real, visible browser
+   window — you log in yourself, including any school SSO/2FA; the
+   session is saved to `sub_agents/job_agent/browser_profiles/handshake/`
+   and reused on every later run — no password is ever stored)
+
+   ```bash
+   python scripts/login_handshake.py
+   ```
+
+7. **Start each sub-agent's A2A server** (separate terminals, must be
    running before the orchestrator starts)
 
    ```bash
@@ -72,7 +86,12 @@ Currently registered:
    uvicorn sub_agents.example_specialist.server:a2a_app --host localhost --port 8001
    ```
 
-7. **Run the orchestrator**
+   ```bash
+   source .venv/bin/activate
+   uvicorn sub_agents.job_agent.server:a2a_app --host localhost --port 8002
+   ```
+
+8. **Run the orchestrator**
 
    ```bash
    adk web --port 8000
@@ -85,8 +104,9 @@ Currently registered:
    ```
 
    Try: *"What's on my calendar today?"*, *"Summarize tomorrow's
-   events."*, or *"Ask example_specialist to handle: buy milk"* (to see
-   the A2A delegation path).
+   events."*, *"Ask example_specialist to handle: buy milk"* (to see the
+   A2A delegation path), or *"Here's my CV: /path/to/resume.pdf — find me
+   3 Software Engineer roles on Handshake"* (delegates to `job_agent`).
 
 ## Security notes
 
@@ -106,9 +126,32 @@ Currently registered:
 - Secrets live in `orchestrator/.env` and `credentials/`, both gitignored.
   Only non-secret config (calendar ID, timezone, file/URL references) is
   expected in `.env`; the actual OAuth client secret and refresh token
-  stay in the `credentials/` JSON files. The calendar MCP server and the
-  example_specialist A2A server each load this same `.env` (or inherit it
-  from the orchestrator's environment) — no secret is duplicated anywhere.
+  stay in the `credentials/` JSON files. The calendar MCP server and every
+  A2A sub-agent load this same `.env` (or inherit it from the
+  orchestrator's environment) — no secret is duplicated anywhere.
+- `job_agent` never stores a Handshake password: `browser_profiles/`
+  holds a logged-in session instead (see `job_agent` details below), and
+  it never submits an application without an explicit human approval of
+  that specific drafted answer set first.
+
+## `job_agent` details
+
+- **Persistent state** lives in `sub_agents/job_agent/data/job_agent.db`
+  (gitignored, contains PII), independent of chat/session memory:
+  `applications` (every submission, for a 90-day per-company-per-role
+  cooldown), `profile_fields` (CV summary, target roles, roles-per-run,
+  and recurring answers — asked once, reused forever), `pending_drafts`
+  (last prepared-but-unsubmitted draft per job).
+- **Job discovery is hard-locked** to `search_handshake_jobs` — the
+  agent's `google_search` tool may only be used to research a company for
+  drafting answers, never to find or verify job listings.
+- **Status:** Handshake search/apply automation
+  (`sub_agents/job_agent/tools/handshake_tools.py`) is a first-pass
+  implementation from general knowledge of Handshake's UI, not yet
+  validated against a live account/session (selectors marked `VERIFY:` in
+  the code) — plan on a live debugging pass with a headed browser.
+  External-ATS-redirect postings (Greenhouse/Lever/Workday via Handshake)
+  aren't handled yet. LinkedIn and jobright.ai sources aren't built yet.
 
 ## Adding more capabilities
 

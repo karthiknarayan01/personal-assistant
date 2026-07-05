@@ -49,16 +49,15 @@ example_specialist = RemoteA2aAgent(
     use_legacy=False,
 )
 
-# A2A sub-agent: github/job-application-agent, run separately
-# (`uvicorn a2a_server:a2a_app --port 8002` from that repo) before this
-# orchestrator starts.
+# A2A sub-agent: a separate process (see sub_agents/job_agent/server.py)
+# that must already be running at _JOB_AGENT_URL.
 job_agent = RemoteA2aAgent(
     name="job_agent",
     description=(
         "Searches Handshake for matching software engineering roles and "
         "applies on the user's behalf, with a mandatory human review step "
         "before any application is actually submitted. See "
-        "github/job-application-agent for setup and current limitations."
+        "sub_agents/job_agent/ for setup and current limitations."
     ),
     agent_card=_JOB_AGENT_URL,
     use_legacy=False,
