@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 
 load_dotenv(os.path.join(_PROJECT_ROOT, "orchestrator", ".env"))
 
-from orchestrator.auth.google_oauth import run_interactive_authorization
+from mcp_servers.calendar.google_oauth import run_interactive_authorization
 
 if __name__ == "__main__":
     run_interactive_authorization()

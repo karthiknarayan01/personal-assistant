@@ -6,7 +6,7 @@ import zoneinfo
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from ..auth.google_oauth import get_calendar_credentials
+from .google_oauth import get_calendar_credentials
 
 _CALENDAR_ID = os.environ.get("GOOGLE_CALENDAR_ID", "primary")
 _TIMEZONE_NAME = os.environ.get("GOOGLE_CALENDAR_TIMEZONE", "UTC")
