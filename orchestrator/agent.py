@@ -24,6 +24,11 @@ _JOB_AGENT_URL = os.environ.get(
     f"http://localhost:8002{AGENT_CARD_WELL_KNOWN_PATH}",
 )
 
+_SHOPPING_AGENT_URL = os.environ.get(
+    "SHOPPING_AGENT_CARD_URL",
+    f"http://localhost:8003{AGENT_CARD_WELL_KNOWN_PATH}",
+)
+
 # MCP tool: spawned automatically over stdio, no separate process to start.
 calendar_toolset = MCPToolset(
     connection_params=StdioConnectionParams(
@@ -63,6 +68,20 @@ job_agent = RemoteA2aAgent(
     use_legacy=False,
 )
 
+# A2A sub-agent: a separate process (see sub_agents/shopping_agent/server.py)
+# that must already be running at _SHOPPING_AGENT_URL.
+shopping_agent = RemoteA2aAgent(
+    name="shopping_agent",
+    description=(
+        "Finds clothing deals and recommends products, remembering the "
+        "user's measurements, brand preferences, and purchase history so "
+        "they aren't asked repeatedly. Prioritizes quality/ratings over "
+        "raw price. Recommends only — never places an order."
+    ),
+    agent_card=_SHOPPING_AGENT_URL,
+    use_legacy=False,
+)
+
 root_agent = Agent(
     model="gemini-flash-latest",
     name="orchestrator",
@@ -73,5 +92,5 @@ root_agent = Agent(
     ),
     instruction=ORCHESTRATOR_INSTRUCTION,
     tools=[calendar_toolset],
-    sub_agents=[example_specialist, job_agent],
+    sub_agents=[example_specialist, job_agent, shopping_agent],
 )

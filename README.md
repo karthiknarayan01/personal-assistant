@@ -29,6 +29,11 @@ Currently registered:
   Handshake for matching software engineering roles and applies on the
   user's behalf, with a mandatory human review-and-approve step before
   any application is actually submitted. See "job_agent details" below.
+- **Sub-agent (A2A):** `shopping_agent` — in `sub_agents/shopping_agent/`.
+  Finds clothing deals (Slickdeals + web search) and recommends products,
+  remembering measurements, brand preferences, and purchase history so
+  they aren't asked repeatedly. Recommends only — never places an order.
+  See "shopping_agent details" below.
 
 ## Setup
 
@@ -91,6 +96,11 @@ Currently registered:
    uvicorn sub_agents.job_agent.server:a2a_app --host localhost --port 8002
    ```
 
+   ```bash
+   source .venv/bin/activate
+   uvicorn sub_agents.shopping_agent.server:a2a_app --host localhost --port 8003
+   ```
+
 8. **Run the orchestrator**
 
    ```bash
@@ -105,8 +115,9 @@ Currently registered:
 
    Try: *"What's on my calendar today?"*, *"Summarize tomorrow's
    events."*, *"Ask example_specialist to handle: buy milk"* (to see the
-   A2A delegation path), or *"Here's my CV: /path/to/resume.pdf — find me
-   3 Software Engineer roles on Handshake"* (delegates to `job_agent`).
+   A2A delegation path), *"Here's my CV: /path/to/resume.pdf — find me 3
+   Software Engineer roles on Handshake"* (delegates to `job_agent`), or
+   *"I want to buy some chinos"* (delegates to `shopping_agent`).
 
 ## Security notes
 
@@ -133,6 +144,9 @@ Currently registered:
   holds a logged-in session instead (see `job_agent` details below), and
   it never submits an application without an explicit human approval of
   that specific drafted answer set first.
+- `shopping_agent` has no purchase/checkout capability at all — it only
+  searches and recommends. Slickdeals is queried through their own
+  documented public RSS search feed (no scraping, no account needed).
 
 ## `job_agent` details
 
@@ -152,6 +166,32 @@ Currently registered:
   the code) — plan on a live debugging pass with a headed browser.
   External-ATS-redirect postings (Greenhouse/Lever/Workday via Handshake)
   aren't handled yet. LinkedIn and jobright.ai sources aren't built yet.
+
+## `shopping_agent` details
+
+- **Persistent state** lives in
+  `sub_agents/shopping_agent/data/shopping_agent.db` (gitignored, contains
+  PII), independent of chat/session memory: `purchases` (every purchase
+  the user reports, for brand-affinity signal and to avoid re-asking) and
+  `profile_fields` (a flexible key/value store for
+  `measurements:<category>`, `preferred_brands:<category>`,
+  `notes:<category>` — asked once per category, reused forever).
+  `get_brand_affinity` derives brand signal straight from purchase history
+  when there's no explicit stored preference yet.
+- **Deal search:** `search_slickdeals` uses Slickdeals' own documented
+  public RSS search feed (`newsearch.php?q=...&rss=1`) — first-party,
+  no scraping, no login required — ranked by their community "thumb
+  score". `google_search` is used alongside it for reviews, ratings, and
+  price context. Slickdeals' actual partner API requires requesting a
+  token from their team and wasn't pursued for this first pass, since the
+  RSS feed already covers the need without an approval process.
+- **No purchase/checkout automation** — this agent only searches,
+  compares, and recommends; the user buys things themselves and reports
+  back what they bought via `record_purchase`.
+- Quality/ratings are explicitly prioritized over raw price when they
+  trade off, and when there's no purchase history yet the agent is
+  instructed to lead with well-reviewed, popularly-bought items rather
+  than the steepest discount.
 
 ## Adding more capabilities
 
