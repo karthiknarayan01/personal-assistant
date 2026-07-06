@@ -21,6 +21,12 @@ _PROFILES_ROOT = os.environ.get(
     os.path.join(os.path.dirname(__file__), "..", "browser_profiles"),
 )
 
+# Defaults to visible so a human can watch/intervene during local, interactive
+# use (e.g. scripts/login_handshake.py). Containers have no display, so
+# deployment must set PLAYWRIGHT_HEADLESS=true — the login step itself still
+# only ever runs locally beforehand, never inside a headless container.
+_DEFAULT_HEADLESS = os.environ.get("PLAYWRIGHT_HEADLESS", "false").lower() == "true"
+
 _lock = threading.Lock()
 _playwright = None
 _contexts: dict[str, "playwright.sync_api.BrowserContext"] = {}
@@ -33,11 +39,13 @@ def profile_dir(source: str) -> str:
     return path
 
 
-def get_context(source: str, headless: bool = False):
+def get_context(source: str, headless: bool | None = None):
     """Returns the persistent BrowserContext for a job source, launching it
-    on first use. `headless=False` by default so a human can glance at
-    what the agent is doing and intervene (CAPTCHA, unexpected dialog)."""
+    on first use. Defaults to PLAYWRIGHT_HEADLESS (see above) when not
+    given explicitly."""
     global _playwright
+    if headless is None:
+        headless = _DEFAULT_HEADLESS
     with _lock:
         if _playwright is None:
             _playwright = sync_playwright().start()
@@ -53,7 +61,7 @@ def get_page(source: str, page_key: str):
     """Returns a named page within a source's context, reused across tool
     calls (e.g. the same job's tab between prepare_application and
     submit_application). Creates a new tab if page_key hasn't been seen."""
-    context = get_context(source)
+    context = get_context(source)  # uses PLAYWRIGHT_HEADLESS default
     cache_key = f"{source}:{page_key}"
     with _lock:
         page = _pages.get(cache_key)

@@ -1,0 +1,75 @@
+services:
+  example_specialist:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["uvicorn", "sub_agents.example_specialist.server:a2a_app", "--host", "0.0.0.0", "--port", "8001"]
+    env_file:
+      - orchestrator/.env
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/.well-known/agent-card.json', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  job_agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.job_agent
+    command: ["uvicorn", "sub_agents.job_agent.server:a2a_app", "--host", "0.0.0.0", "--port", "8002"]
+    env_file:
+      - orchestrator/.env
+    volumes:
+      - ./sub_agents/job_agent/data:/app/sub_agents/job_agent/data
+      - ./sub_agents/job_agent/browser_profiles:/app/sub_agents/job_agent/browser_profiles
+    ports:
+      - "8002:8002"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/.well-known/agent-card.json', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  shopping_agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["uvicorn", "sub_agents.shopping_agent.server:a2a_app", "--host", "0.0.0.0", "--port", "8003"]
+    env_file:
+      - orchestrator/.env
+    volumes:
+      - ./sub_agents/shopping_agent/data:/app/sub_agents/shopping_agent/data
+    ports:
+      - "8003:8003"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/.well-known/agent-card.json', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["adk", "web", "--host", "0.0.0.0", "--port", "8000"]
+    env_file:
+      - orchestrator/.env
+    environment:
+      # Overrides the localhost defaults so the orchestrator reaches
+      # sub-agents by their compose service name instead.
+      EXAMPLE_SPECIALIST_AGENT_CARD_URL: http://example_specialist:8001/.well-known/agent-card.json
+      JOB_AGENT_CARD_URL: http://job_agent:8002/.well-known/agent-card.json
+      SHOPPING_AGENT_CARD_URL: http://shopping_agent:8003/.well-known/agent-card.json
+    volumes:
+      - ./credentials:/app/credentials
+    ports:
+      - "8000:8000"
+    depends_on:
+      example_specialist:
+        condition: service_healthy
+      job_agent:
+        condition: service_healthy
+      shopping_agent:
+        condition: service_healthy

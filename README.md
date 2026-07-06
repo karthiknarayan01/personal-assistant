@@ -37,7 +37,13 @@ Currently registered:
 
 ## Setup
 
-1. **Install dependencies**
+Steps 1-6 are one-time, host-side setup (they need a real browser window
+and your actual login, so they can't run inside a container). After that,
+everything runs together via Docker Compose — no manual multi-terminal
+startup.
+
+1. **Install dependencies locally** (needed for the one-time scripts below,
+   even though the services themselves later run in Docker)
 
    ```bash
    python3 -m venv .venv
@@ -83,41 +89,35 @@ Currently registered:
    python scripts/login_handshake.py
    ```
 
-7. **Start each sub-agent's A2A server** (separate terminals, must be
-   running before the orchestrator starts)
+7. **Run everything together**
 
    ```bash
-   source .venv/bin/activate
-   uvicorn sub_agents.example_specialist.server:a2a_app --host localhost --port 8001
+   docker compose up --build
    ```
 
-   ```bash
-   source .venv/bin/activate
-   uvicorn sub_agents.job_agent.server:a2a_app --host localhost --port 8002
-   ```
+   This builds all four images and starts the three sub-agents first,
+   waiting for each to report healthy (via their agent-card endpoint)
+   before starting the orchestrator — no manual ordering, no separate
+   terminals. Open **http://localhost:8000/dev-ui/** and try: *"What's on
+   my calendar today?"*, *"Ask example_specialist to handle: buy milk"*
+   (A2A delegation), *"Here's my CV: /path/to/resume.pdf — find me 3
+   Software Engineer roles on Handshake"* (`job_agent`), or *"I want to
+   buy some chinos"* (`shopping_agent`).
 
-   ```bash
-   source .venv/bin/activate
-   uvicorn sub_agents.shopping_agent.server:a2a_app --host localhost --port 8003
-   ```
+   `docker-compose.yml` reads `orchestrator/.env` for secrets (via
+   `env_file:`, not baked into any image) and overrides the sub-agent
+   URLs to point at compose's internal service DNS names instead of
+   `localhost`. `credentials/`, `sub_agents/job_agent/{data,browser_profiles}/`,
+   and `sub_agents/shopping_agent/data/` are bind-mounted so the OAuth
+   token, Handshake session, and SQLite state all persist across
+   `docker compose up`/`down` cycles. Stop everything with
+   `docker compose down`.
 
-8. **Run the orchestrator**
-
-   ```bash
-   adk web --port 8000
-   ```
-
-   or
-
-   ```bash
-   adk run orchestrator
-   ```
-
-   Try: *"What's on my calendar today?"*, *"Summarize tomorrow's
-   events."*, *"Ask example_specialist to handle: buy milk"* (to see the
-   A2A delegation path), *"Here's my CV: /path/to/resume.pdf — find me 3
-   Software Engineer roles on Handshake"* (delegates to `job_agent`), or
-   *"I want to buy some chinos"* (delegates to `shopping_agent`).
+   **Without Docker**, the same four processes can be run directly (each
+   sub-agent's `uvicorn ... --port ...` command, then `adk web --port
+   8000` or `adk run orchestrator` from the venv in step 1) — useful for
+   local debugging, e.g. watching `job_agent`'s browser interactively
+   (only possible outside a container, since containers have no display).
 
 ## Security notes
 

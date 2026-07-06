@@ -1,0 +1,18 @@
+# job_agent needs a real Chromium + its OS-level deps for Playwright.
+# Installing via `playwright install --with-deps` (rather than pinning a
+# separate playwright/python base image tag) keeps the browser build in
+# lockstep with whatever `playwright` version requirements.txt resolves to.
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && playwright install --with-deps chromium
+
+COPY . .
+
+ENV PYTHONUNBUFFERED=1
+# No display in a container — the interactive login step
+# (scripts/login_handshake.py) only ever runs on the host, never here.
+ENV PLAYWRIGHT_HEADLESS=true

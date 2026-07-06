@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.git/
+
+# secrets / local state — mounted as volumes at runtime, never baked into the image
+orchestrator/.env
+credentials/*
+!credentials/.gitkeep
+sub_agents/job_agent/data/*
+!sub_agents/job_agent/data/.gitkeep
+sub_agents/job_agent/browser_profiles/*
+!sub_agents/job_agent/browser_profiles/.gitkeep
+sub_agents/shopping_agent/data/*
+!sub_agents/shopping_agent/data/.gitkeep
