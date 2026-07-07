@@ -34,6 +34,11 @@ Currently registered:
   remembering measurements, brand preferences, and purchase history so
   they aren't asked repeatedly. Recommends only — never places an order.
   See "shopping_agent details" below.
+- **Sub-agent (A2A):** `remedy_agent` — in `sub_agents/remedy_agent/`.
+  Answers questions about traditional-medicine remedies (Ayurveda and
+  TCM) for everyday complaints. Screens every query for possible medical
+  emergencies first and advises seeing a doctor instead of offering a
+  remedy when one is possible. See "remedy_agent details" below.
 
 ## Setup
 
@@ -95,25 +100,26 @@ startup.
    docker compose up --build
    ```
 
-   This builds all four images and starts the three sub-agents first,
+   This builds all five images and starts the four sub-agents first,
    waiting for each to report healthy (via their agent-card endpoint)
    before starting the orchestrator — no manual ordering, no separate
    terminals. Open **http://localhost:8000/dev-ui/** and try: *"What's on
    my calendar today?"*, *"Ask example_specialist to handle: buy milk"*
    (A2A delegation), *"Here's my CV: /path/to/resume.pdf — find me 3
-   Software Engineer roles on Handshake"* (`job_agent`), or *"I want to
-   buy some chinos"* (`shopping_agent`).
+   Software Engineer roles on Handshake"* (`job_agent`), *"I want to buy
+   some chinos"* (`shopping_agent`), or *"Is there a natural remedy for
+   gastric issues?"* (`remedy_agent`).
 
    `docker-compose.yml` reads `orchestrator/.env` for secrets (via
    `env_file:`, not baked into any image) and overrides the sub-agent
    URLs to point at compose's internal service DNS names instead of
    `localhost`. `credentials/`, `sub_agents/job_agent/{data,browser_profiles}/`,
-   and `sub_agents/shopping_agent/data/` are bind-mounted so the OAuth
-   token, Handshake session, and SQLite state all persist across
-   `docker compose up`/`down` cycles. Stop everything with
-   `docker compose down`.
+   `sub_agents/shopping_agent/data/`, and `sub_agents/remedy_agent/data/`
+   are bind-mounted so the OAuth token, Handshake session, and SQLite
+   state all persist across `docker compose up`/`down` cycles. Stop
+   everything with `docker compose down`.
 
-   **Without Docker**, the same four processes can be run directly (each
+   **Without Docker**, the same five processes can be run directly (each
    sub-agent's `uvicorn ... --port ...` command, then `adk web --port
    8000` or `adk run orchestrator` from the venv in step 1) — useful for
    local debugging, e.g. watching `job_agent`'s browser interactively
@@ -121,7 +127,7 @@ startup.
 
 ## Deploying to Cloud Run (GCP)
 
-`gcp/deploy.sh` deploys the same two images to four Cloud Run services.
+`gcp/deploy.sh` deploys the same two images to five Cloud Run services.
 **This creates real, billable cloud resources and a real internet-facing
 URL — it has not been run for you; read this section before running it
 yourself.** Cloud Run's pay-per-use pricing should be small for personal,
@@ -132,25 +138,26 @@ traffic.
 **Access model:** only the orchestrator gets a public URL, and it's
 gated by [Identity-Aware Proxy](https://cloud.google.com/iap) — you sign
 in with your normal Google account in a plain browser tab; nobody else
-gets through. The three sub-agents are deployed with
+gets through. The four sub-agents are deployed with
 `--no-allow-unauthenticated` and are only callable by the orchestrator's
 own Cloud Run service identity (`orchestrator/gcp_auth.py` attaches a
 Google-signed ID token to each request when `USE_GCP_ID_TOKEN_AUTH=true`)
 — they have no public URL of their own.
 
 **Persistence:** a single GCS bucket is mounted into `job-agent`,
-`shopping-agent`, and `orchestrator` at `/mnt/state`, so purchase
-history, the 90-day applied-jobs cooldown, saved measurements/
-preferences, the calendar OAuth token, and the logged-in Handshake
-session all survive redeploys — the script seeds it from your local
-`credentials/`, `sub_agents/job_agent/{data,browser_profiles}/`, and
-`sub_agents/shopping_agent/data/` on first run. One caveat worth knowing:
-SQLite's default WAL journal mode needs file-locking that GCS FUSE
-mounts don't reliably support, so the deploy sets
-`SQLITE_JOURNAL_MODE=DELETE` for these two services on Cloud Run instead
-— fine for a single low-traffic personal instance, but if this ever sees
-real concurrent load, migrating that state to Firestore would be the
-more correct fix.
+`shopping-agent`, `remedy-agent`, and `orchestrator` at `/mnt/state`, so
+purchase history, the 90-day applied-jobs cooldown, saved measurements/
+preferences, the curated remedy knowledge base, the calendar OAuth
+token, and the logged-in Handshake session all survive redeploys — the
+script seeds it from your local `credentials/`,
+`sub_agents/job_agent/{data,browser_profiles}/`,
+`sub_agents/shopping_agent/data/`, and `sub_agents/remedy_agent/data/`
+on first run. One caveat worth knowing: SQLite's default WAL journal
+mode needs file-locking that GCS FUSE mounts don't reliably support, so
+the deploy sets `SQLITE_JOURNAL_MODE=DELETE` for these services on Cloud
+Run instead — fine for a single low-traffic personal instance, but if
+this ever sees real concurrent load, migrating that state to Firestore
+would be the more correct fix.
 
 **One-time prerequisites** (not scripted — account-type-dependent):
 1. `gcloud auth login`, and a GCP project with billing enabled.
@@ -202,6 +209,11 @@ remove your persisted data, otherwise it's left in place).
 - `shopping_agent` has no purchase/checkout capability at all — it only
   searches and recommends. Slickdeals is queried through their own
   documented public RSS search feed (no scraping, no account needed).
+- `remedy_agent` screens every query for possible medical emergencies
+  (keyword safety net + the model's own judgment) before offering any
+  home remedy, and never omits known contraindications/interactions.
+  It does not diagnose, prescribe dosages, or otherwise substitute for
+  professional care — see "remedy_agent details" below.
 
 ## `job_agent` details
 
@@ -247,6 +259,37 @@ remove your persisted data, otherwise it's left in place).
   trade off, and when there's no purchase history yet the agent is
   instructed to lead with well-reviewed, popularly-bought items rather
   than the steepest discount.
+
+## `remedy_agent` details
+
+- **Persistent state** lives in
+  `sub_agents/remedy_agent/data/remedy_agent.db` (gitignored, treated as
+  a runtime artifact even though it isn't personal data): a curated
+  `remedies` table seeded on first use with ~12 well-known Ayurveda/TCM/
+  general remedies for common complaints (cold & cough, sore throat,
+  gastric/indigestion, nausea, headache, mild insomnia, joint pain, minor
+  cuts) — deliberately no specific dosages, only general traditional-use
+  descriptions plus real, commonly-cited cautions. `save_remedy` grows it
+  over time from vetted live search results.
+- **Emergency screening is the first thing that happens on every query**
+  (`orchestrator/prompts.py`-style priority-ordered rules in
+  `sub_agents/remedy_agent/prompts.py`): a deterministic keyword check
+  (`check_emergency_symptoms`) plus the model's own judgment — either can
+  trigger it. On a possible emergency (chest pain, trouble breathing,
+  stroke signs, severe allergic reaction, suicidal ideation, poisoning,
+  etc.), it advises immediate medical attention instead of a remedy, full
+  stop, no exceptions.
+- **Sources:** checks the local knowledge base first, then `google_search`
+  weighted toward NCCIH (nccih.nih.gov), MedlinePlus (medlineplus.gov),
+  India's Ministry of AYUSH (ayush.gov.in / namayush.gov.in), Mayo
+  Clinic, PubMed/NCBI, and examine.com — no MCP tool or structured API
+  exists for TCM/Ayurveda specifically (checked; nothing reliable
+  found), so this is instruction-level source weighting rather than a
+  hard-locked tool boundary the way `job_agent`'s Handshake-only search
+  is.
+- **Every non-emergency response ends with a disclaimer**: these are
+  traditional/home remedies, not a substitute for professional medical
+  advice, see a doctor if symptoms are severe, persist, or don't improve.
 
 ## Adding more capabilities
 

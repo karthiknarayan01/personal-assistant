@@ -11,7 +11,7 @@ BUCKET_NAME="${BUCKET_NAME:-}"
 
 gcloud config set project "$PROJECT_ID" >/dev/null
 
-for svc in orchestrator example-specialist job-agent shopping-agent; do
+for svc in orchestrator example-specialist job-agent shopping-agent remedy-agent; do
   gcloud run services delete "$svc" --region="$REGION" --quiet || true
 done
 

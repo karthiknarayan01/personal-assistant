@@ -49,6 +49,23 @@ services:
       timeout: 5s
       retries: 20
 
+  remedy_agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["uvicorn", "sub_agents.remedy_agent.server:a2a_app", "--host", "0.0.0.0", "--port", "8004"]
+    env_file:
+      - orchestrator/.env
+    volumes:
+      - ./sub_agents/remedy_agent/data:/app/sub_agents/remedy_agent/data
+    ports:
+      - "8004:8004"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/.well-known/agent-card.json', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   orchestrator:
     build:
       context: .
@@ -62,6 +79,7 @@ services:
       EXAMPLE_SPECIALIST_AGENT_CARD_URL: http://example_specialist:8001/.well-known/agent-card.json
       JOB_AGENT_CARD_URL: http://job_agent:8002/.well-known/agent-card.json
       SHOPPING_AGENT_CARD_URL: http://shopping_agent:8003/.well-known/agent-card.json
+      REMEDY_AGENT_CARD_URL: http://remedy_agent:8004/.well-known/agent-card.json
     volumes:
       - ./credentials:/app/credentials
     ports:
@@ -72,4 +90,6 @@ services:
       job_agent:
         condition: service_healthy
       shopping_agent:
+        condition: service_healthy
+      remedy_agent:
         condition: service_healthy

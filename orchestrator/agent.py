@@ -30,6 +30,11 @@ _SHOPPING_AGENT_URL = os.environ.get(
     f"http://localhost:8003{AGENT_CARD_WELL_KNOWN_PATH}",
 )
 
+_REMEDY_AGENT_URL = os.environ.get(
+    "REMEDY_AGENT_CARD_URL",
+    f"http://localhost:8004{AGENT_CARD_WELL_KNOWN_PATH}",
+)
+
 # MCP tool: spawned automatically over stdio, no separate process to start.
 calendar_toolset = MCPToolset(
     connection_params=StdioConnectionParams(
@@ -86,6 +91,22 @@ shopping_agent = RemoteA2aAgent(
     httpx_client=authed_httpx_client(_SHOPPING_AGENT_URL),
 )
 
+# A2A sub-agent: a separate process (see sub_agents/remedy_agent/server.py)
+# that must already be running at _REMEDY_AGENT_URL.
+remedy_agent = RemoteA2aAgent(
+    name="remedy_agent",
+    description=(
+        "Answers questions about traditional-medicine remedies (Ayurveda "
+        "and Traditional Chinese Medicine) for everyday complaints. "
+        "Always screens for medical emergencies first and advises seeing "
+        "a doctor instead of offering a remedy when one is possible; "
+        "every other response ends with a see-a-doctor disclaimer."
+    ),
+    agent_card=_REMEDY_AGENT_URL,
+    use_legacy=False,
+    httpx_client=authed_httpx_client(_REMEDY_AGENT_URL),
+)
+
 root_agent = Agent(
     model="gemini-flash-latest",
     name="orchestrator",
@@ -96,5 +117,5 @@ root_agent = Agent(
     ),
     instruction=ORCHESTRATOR_INSTRUCTION,
     tools=[calendar_toolset],
-    sub_agents=[example_specialist, job_agent, shopping_agent],
+    sub_agents=[example_specialist, job_agent, shopping_agent, remedy_agent],
 )

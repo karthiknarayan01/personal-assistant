@@ -1,0 +1,25 @@
+"""Exposes remedy_agent over A2A.
+
+Run before starting the orchestrator:
+
+    uvicorn sub_agents.remedy_agent.server:a2a_app --host localhost --port 8004
+
+Agent card ends up at http://localhost:8004/.well-known/agent-card.json,
+which orchestrator/agent.py points its RemoteA2aAgent at.
+"""
+
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv(
+    os.path.join(os.path.dirname(__file__), "..", "..", "orchestrator", ".env")
+)
+
+from google.adk.a2a.utils.agent_to_a2a import to_a2a
+
+from .agent import root_agent
+
+_PORT = int(os.environ.get("REMEDY_AGENT_PORT", "8004"))
+
+a2a_app = to_a2a(root_agent, port=_PORT)

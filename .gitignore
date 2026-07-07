@@ -17,3 +17,7 @@ sub_agents/job_agent/browser_profiles/*
 # shopping_agent local data (PII: purchase history, measurements)
 sub_agents/shopping_agent/data/*
 !sub_agents/shopping_agent/data/.gitkeep
+
+# remedy_agent local data (curated knowledge base)
+sub_agents/remedy_agent/data/*
+!sub_agents/remedy_agent/data/.gitkeep

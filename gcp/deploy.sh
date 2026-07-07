@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploys calendar-agent to Cloud Run: 3 private sub-agent services plus one
+# Deploys calendar-agent to Cloud Run: 4 private sub-agent services plus one
 # public-but-IAP-gated orchestrator service, state persisted on a GCS
 # bucket mounted into the containers.
 #
@@ -62,6 +62,7 @@ echo "=== 4. Seeding bucket with existing local state (if present) ==="
 [ -d sub_agents/job_agent/data ] && gsutil -m rsync -r sub_agents/job_agent/data "gs://$BUCKET_NAME/job_agent/data" || true
 [ -d sub_agents/job_agent/browser_profiles ] && gsutil -m rsync -r sub_agents/job_agent/browser_profiles "gs://$BUCKET_NAME/job_agent/browser_profiles" || true
 [ -d sub_agents/shopping_agent/data ] && gsutil -m rsync -r sub_agents/shopping_agent/data "gs://$BUCKET_NAME/shopping_agent/data" || true
+[ -d sub_agents/remedy_agent/data ] && gsutil -m rsync -r sub_agents/remedy_agent/data "gs://$BUCKET_NAME/remedy_agent/data" || true
 
 echo "=== 5. GOOGLE_API_KEY in Secret Manager ==="
 if ! gcloud secrets describe google-api-key >/dev/null 2>&1; then
@@ -112,8 +113,18 @@ gcloud run deploy shopping-agent \
   --add-volume="mount-path=/mnt/state,type=cloud-storage,bucket=$BUCKET_NAME"
 SHOPPING_AGENT_URL="$(gcloud run services describe shopping-agent --region="$REGION" --format='value(status.url)')"
 
+gcloud run deploy remedy-agent \
+  --image="$REPO/agent-base:latest" \
+  --region="$REGION" --no-allow-unauthenticated --port=8080 \
+  --command="uvicorn" \
+  --args="sub_agents.remedy_agent.server:a2a_app,--host,0.0.0.0,--port,8080" \
+  --set-secrets="GOOGLE_API_KEY=google-api-key:latest" \
+  --set-env-vars="REMEDY_AGENT_DB_PATH=/mnt/state/remedy_agent/data/remedy_agent.db,SQLITE_JOURNAL_MODE=DELETE" \
+  --add-volume="mount-path=/mnt/state,type=cloud-storage,bucket=$BUCKET_NAME"
+REMEDY_AGENT_URL="$(gcloud run services describe remedy-agent --region="$REGION" --format='value(status.url)')"
+
 echo "=== 9. Granting the orchestrator's service account invoker on each sub-agent ==="
-for svc in example-specialist job-agent shopping-agent; do
+for svc in example-specialist job-agent shopping-agent remedy-agent; do
   gcloud run services add-iam-policy-binding "$svc" \
     --region="$REGION" \
     --member="serviceAccount:$ORCH_SA" \
@@ -128,7 +139,7 @@ gcloud run deploy orchestrator \
   --command="adk" \
   --args="web,--host,0.0.0.0,--port,8080" \
   --set-secrets="GOOGLE_API_KEY=google-api-key:latest" \
-  --set-env-vars="GOOGLE_GENAI_USE_VERTEXAI=FALSE,USE_GCP_ID_TOKEN_AUTH=true,GOOGLE_CLIENT_SECRETS_FILE=/mnt/state/credentials/client_secret.json,GOOGLE_TOKEN_FILE=/mnt/state/credentials/token.json,GOOGLE_CALENDAR_ID=primary,GOOGLE_CALENDAR_TIMEZONE=UTC,EXAMPLE_SPECIALIST_AGENT_CARD_URL=${EXAMPLE_SPECIALIST_URL}/.well-known/agent-card.json,JOB_AGENT_CARD_URL=${JOB_AGENT_URL}/.well-known/agent-card.json,SHOPPING_AGENT_CARD_URL=${SHOPPING_AGENT_URL}/.well-known/agent-card.json" \
+  --set-env-vars="GOOGLE_GENAI_USE_VERTEXAI=FALSE,USE_GCP_ID_TOKEN_AUTH=true,GOOGLE_CLIENT_SECRETS_FILE=/mnt/state/credentials/client_secret.json,GOOGLE_TOKEN_FILE=/mnt/state/credentials/token.json,GOOGLE_CALENDAR_ID=primary,GOOGLE_CALENDAR_TIMEZONE=UTC,EXAMPLE_SPECIALIST_AGENT_CARD_URL=${EXAMPLE_SPECIALIST_URL}/.well-known/agent-card.json,JOB_AGENT_CARD_URL=${JOB_AGENT_URL}/.well-known/agent-card.json,SHOPPING_AGENT_CARD_URL=${SHOPPING_AGENT_URL}/.well-known/agent-card.json,REMEDY_AGENT_CARD_URL=${REMEDY_AGENT_URL}/.well-known/agent-card.json" \
   --add-volume="mount-path=/mnt/state,type=cloud-storage,bucket=$BUCKET_NAME"
 
 echo "=== 11. Granting IAP access to $IAP_USER_EMAIL ==="
