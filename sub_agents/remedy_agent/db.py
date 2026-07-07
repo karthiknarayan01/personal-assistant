@@ -10,8 +10,8 @@ _DB_PATH = os.environ.get(
 
 _lock = threading.Lock()
 
-# See calendar-agent/gcp/deploy.sh — WAL needs locking that GCS FUSE mounts
-# don't reliably support. Defaults to WAL for local/Docker Compose use.
+# Overridable in case this db file ever ends up on a filesystem that
+# doesn't support WAL's locking requirements (e.g. a network mount).
 _JOURNAL_MODE = os.environ.get("SQLITE_JOURNAL_MODE", "WAL")
 
 

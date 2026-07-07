@@ -1,6 +1,12 @@
-# calendar-agent
+# personal-assistant
 
-A scope-limited orchestrator agent, built on [Google ADK](https://github.com/google/adk-python).
+A scope-limited orchestrator agent, built on [Google ADK](https://github.com/google/adk-python),
+that delegates to specialist sub-agents for everyday personal tasks —
+calendar, job applications, shopping deals, traditional-medicine
+remedies, and whatever's added next. **Runs entirely locally** — no
+cloud deployment, no login, no account required beyond the API keys/
+credentials each tool or sub-agent actually needs, all supplied via
+`.env` files.
 
 The orchestrator only acts through explicitly registered tools/sub-agents.
 It can be asked to perform a task directly, or to read the day's Google
@@ -124,62 +130,6 @@ startup.
    8000` or `adk run orchestrator` from the venv in step 1) — useful for
    local debugging, e.g. watching `job_agent`'s browser interactively
    (only possible outside a container, since containers have no display).
-
-## Deploying to Cloud Run (GCP)
-
-`gcp/deploy.sh` deploys the same two images to five Cloud Run services.
-**This creates real, billable cloud resources and a real internet-facing
-URL — it has not been run for you; read this section before running it
-yourself.** Cloud Run's pay-per-use pricing should be small for personal,
-low-traffic use, but the GCS bucket, Artifact Registry storage, and any
-`--min-instances` you set later all have an ongoing cost regardless of
-traffic.
-
-**Access model:** only the orchestrator gets a public URL, and it's
-gated by [Identity-Aware Proxy](https://cloud.google.com/iap) — you sign
-in with your normal Google account in a plain browser tab; nobody else
-gets through. The four sub-agents are deployed with
-`--no-allow-unauthenticated` and are only callable by the orchestrator's
-own Cloud Run service identity (`orchestrator/gcp_auth.py` attaches a
-Google-signed ID token to each request when `USE_GCP_ID_TOKEN_AUTH=true`)
-— they have no public URL of their own.
-
-**Persistence:** a single GCS bucket is mounted into `job-agent`,
-`shopping-agent`, `remedy-agent`, and `orchestrator` at `/mnt/state`, so
-purchase history, the 90-day applied-jobs cooldown, saved measurements/
-preferences, the curated remedy knowledge base, the calendar OAuth
-token, and the logged-in Handshake session all survive redeploys — the
-script seeds it from your local `credentials/`,
-`sub_agents/job_agent/{data,browser_profiles}/`,
-`sub_agents/shopping_agent/data/`, and `sub_agents/remedy_agent/data/`
-on first run. One caveat worth knowing: SQLite's default WAL journal
-mode needs file-locking that GCS FUSE mounts don't reliably support, so
-the deploy sets `SQLITE_JOURNAL_MODE=DELETE` for these services on Cloud
-Run instead — fine for a single low-traffic personal instance, but if
-this ever sees real concurrent load, migrating that state to Firestore
-would be the more correct fix.
-
-**One-time prerequisites** (not scripted — account-type-dependent):
-1. `gcloud auth login`, and a GCP project with billing enabled.
-2. Configure an OAuth consent screen for the project — IAP needs one to
-   exist. In the console: APIs & Services → OAuth consent screen →
-   External → add yourself as a test user.
-3. Complete the local one-time setup already described above (steps 1-6)
-   — the calendar token and Handshake session need to exist locally
-   before the script can seed the bucket with them.
-
-**Deploy:**
-
-```bash
-export PROJECT_ID=your-gcp-project
-export BUCKET_NAME=your-bucket-name
-export IAP_USER_EMAIL=you@gmail.com
-./gcp/deploy.sh
-```
-
-Prints the orchestrator's URL at the end — open `<url>/dev-ui/` and sign
-in. **Tear down** with `./gcp/teardown.sh` (add `--delete-bucket` to also
-remove your persisted data, otherwise it's left in place).
 
 ## Security notes
 
