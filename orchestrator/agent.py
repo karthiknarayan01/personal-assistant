@@ -10,6 +10,7 @@ from google.adk.agents.remote_a2a_agent import (
 from google.adk.tools.mcp_tool import MCPToolset
 from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
 
+from .gcp_auth import authed_httpx_client
 from .prompts import ORCHESTRATOR_INSTRUCTION
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -52,6 +53,7 @@ example_specialist = RemoteA2aAgent(
     ),
     agent_card=_EXAMPLE_SPECIALIST_URL,
     use_legacy=False,
+    httpx_client=authed_httpx_client(_EXAMPLE_SPECIALIST_URL),
 )
 
 # A2A sub-agent: a separate process (see sub_agents/job_agent/server.py)
@@ -66,6 +68,7 @@ job_agent = RemoteA2aAgent(
     ),
     agent_card=_JOB_AGENT_URL,
     use_legacy=False,
+    httpx_client=authed_httpx_client(_JOB_AGENT_URL),
 )
 
 # A2A sub-agent: a separate process (see sub_agents/shopping_agent/server.py)
@@ -80,6 +83,7 @@ shopping_agent = RemoteA2aAgent(
     ),
     agent_card=_SHOPPING_AGENT_URL,
     use_legacy=False,
+    httpx_client=authed_httpx_client(_SHOPPING_AGENT_URL),
 )
 
 root_agent = Agent(

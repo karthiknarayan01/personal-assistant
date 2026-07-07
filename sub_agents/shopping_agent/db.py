@@ -10,12 +10,18 @@ _DB_PATH = os.environ.get(
 
 _lock = threading.Lock()
 
+# WAL needs shared-memory-backed locking that GCS FUSE-mounted volumes
+# (see gcp/deploy.sh) don't reliably support — set SQLITE_JOURNAL_MODE=DELETE
+# there. Defaults to WAL for local/Docker Compose use, where the db file
+# sits on a normal filesystem.
+_JOURNAL_MODE = os.environ.get("SQLITE_JOURNAL_MODE", "WAL")
+
 
 def _connect() -> sqlite3.Connection:
     os.makedirs(os.path.dirname(os.path.abspath(_DB_PATH)), exist_ok=True)
     conn = sqlite3.connect(_DB_PATH)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute(f"PRAGMA journal_mode={_JOURNAL_MODE}")
     return conn
 
 
