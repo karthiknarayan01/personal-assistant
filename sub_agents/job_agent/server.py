@@ -21,5 +21,12 @@ from google.adk.a2a.utils.agent_to_a2a import to_a2a
 from .agent import root_agent
 
 _PORT = int(os.environ.get("JOB_AGENT_PORT", "8002"))
+# The host baked into the advertised agent card's `url` field — this is
+# what the orchestrator actually connects to for real task requests (not
+# just the discovery fetch). Must be reachable *from the orchestrator's
+# perspective*: "localhost" works when both run as local processes on
+# the same machine, but under Docker Compose it must be this container's
+# service name instead (set via A2A_HOST there).
+_HOST = os.environ.get("A2A_HOST", "localhost")
 
-a2a_app = to_a2a(root_agent, port=_PORT)
+a2a_app = to_a2a(root_agent, host=_HOST, port=_PORT)
