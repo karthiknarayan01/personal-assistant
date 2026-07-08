@@ -26,6 +26,8 @@ services:
     command: ["uvicorn", "sub_agents.shopping_agent.server:a2a_app", "--host", "0.0.0.0", "--port", "8003"]
     env_file:
       - orchestrator/.env
+    environment:
+      A2A_HOST: shopping_agent
     volumes:
       - ./sub_agents/shopping_agent/data:/app/sub_agents/shopping_agent/data
     ports:
