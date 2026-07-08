@@ -45,6 +45,8 @@ services:
     command: ["uvicorn", "sub_agents.remedy_agent.server:a2a_app", "--host", "0.0.0.0", "--port", "8004"]
     env_file:
       - orchestrator/.env
+    environment:
+      A2A_HOST: remedy_agent
     volumes:
       - ./sub_agents/remedy_agent/data:/app/sub_agents/remedy_agent/data
     ports:
