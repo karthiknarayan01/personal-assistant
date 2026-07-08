@@ -8,11 +8,6 @@ from google.adk.agents.remote_a2a_agent import (
 
 from .prompts import ORCHESTRATOR_INSTRUCTION
 
-_EXAMPLE_SPECIALIST_URL = os.environ.get(
-    "EXAMPLE_SPECIALIST_AGENT_CARD_URL",
-    f"http://localhost:8001{AGENT_CARD_WELL_KNOWN_PATH}",
-)
-
 _JOB_AGENT_URL = os.environ.get(
     "JOB_AGENT_CARD_URL",
     f"http://localhost:8002{AGENT_CARD_WELL_KNOWN_PATH}",
@@ -26,19 +21,6 @@ _SHOPPING_AGENT_URL = os.environ.get(
 _REMEDY_AGENT_URL = os.environ.get(
     "REMEDY_AGENT_CARD_URL",
     f"http://localhost:8004{AGENT_CARD_WELL_KNOWN_PATH}",
-)
-
-# A2A sub-agent: a separate process (see sub_agents/example_specialist/server.py)
-# that must already be running at _EXAMPLE_SPECIALIST_URL.
-example_specialist = RemoteA2aAgent(
-    name="example_specialist",
-    description=(
-        "TEMPLATE specialist sub-agent reachable over A2A — currently only "
-        "acknowledges and echoes back a task, to prove sub-agent wiring "
-        "works. Replace with a real specialist."
-    ),
-    agent_card=_EXAMPLE_SPECIALIST_URL,
-    use_legacy=False,
 )
 
 # A2A sub-agent: a separate process (see sub_agents/job_agent/server.py)
@@ -92,5 +74,5 @@ root_agent = Agent(
         "strictly limited to its registered tools and sub-agents."
     ),
     instruction=ORCHESTRATOR_INSTRUCTION,
-    sub_agents=[example_specialist, job_agent, shopping_agent, remedy_agent],
+    sub_agents=[job_agent, shopping_agent, remedy_agent],
 )

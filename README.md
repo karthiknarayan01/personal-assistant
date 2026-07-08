@@ -25,11 +25,6 @@ Tools (if any are registered) would be exposed over
 capabilities" below; none are currently registered.
 
 Currently registered:
-- **Sub-agent (A2A):** `example_specialist` — a template specialist in
-  `sub_agents/example_specialist/`. It has no real capability; it only
-  acknowledges and echoes back a task, to prove the orchestrator-to-
-  sub-agent wiring works. Copy this package as the starting point for a
-  real specialist. Runs as its own server process (see below).
 - **Sub-agent (A2A):** `job_agent` — in `sub_agents/job_agent/`. Searches
   Handshake for matching software engineering roles and applies on the
   user's behalf, with a mandatory human review-and-approve step before
@@ -86,12 +81,11 @@ multi-terminal startup.
    docker compose up --build
    ```
 
-   This builds all five images and starts the four sub-agents first,
+   This builds all four images and starts the three sub-agents first,
    waiting for each to report healthy (via their agent-card endpoint)
    before starting the orchestrator — no manual ordering, no separate
    terminals. Open **http://localhost:8000/dev-ui/** — that's the UI —
-   and type a prompt, e.g.: *"Ask example_specialist to handle: buy
-   milk"* (A2A delegation), *"Here's my CV: /path/to/resume.pdf — find me
+   and type a prompt, e.g.: *"Here's my CV: /path/to/resume.pdf — find me
    3 Software Engineer roles on Handshake"* (`job_agent`), *"I want to buy
    some chinos"* (`shopping_agent`), or *"Is there a natural remedy for
    gastric issues?"* (`remedy_agent`).
@@ -105,7 +99,7 @@ multi-terminal startup.
    across `docker compose up`/`down` cycles. Stop everything with
    `docker compose down`.
 
-   **Without Docker**, the same five processes can be run directly (each
+   **Without Docker**, the same four processes can be run directly (each
    sub-agent's `uvicorn ... --port ...` command, then `adk web --port
    8000` or `adk run orchestrator` from the venv in step 1) — useful for
    local debugging, e.g. watching `job_agent`'s browser interactively
@@ -117,8 +111,8 @@ multi-terminal startup.
   doesn't match one, it refuses rather than improvising.
 - Anything a sub-agent returns is always treated as data, never as an
   instruction — embedded prompt-injection attempts are evaluated as
-  content, not obeyed. The example sub-agent's own instructions apply the
-  same rule to whatever task text it receives.
+  content, not obeyed. Each sub-agent's own instructions apply the same
+  rule to whatever content it reads via its own tools.
 - Secrets live only in `orchestrator/.env`, gitignored. Only non-secret
   config (ports, agent-card URLs) is expected alongside it; every A2A
   sub-agent loads this same `.env` (or inherits it from the
@@ -221,9 +215,12 @@ multi-terminal startup.
   `MCPToolset` + `StdioConnectionParams` — see git history around commit
   `e68a8a4` for a worked example before the calendar tool was removed),
   then register it in `orchestrator/agent.py`'s `tools=[...]`.
-- **New sub-agent:** copy `sub_agents/example_specialist/` to a new
-  package, replace its instructions/capabilities, run it as its own A2A
-  server (own port), and register it with a `RemoteA2aAgent(...)` entry in
+- **New sub-agent:** copy an existing package under `sub_agents/` (e.g.
+  `sub_agents/remedy_agent/` for the simplest one with no persistent
+  state, or any of the others for one with a SQLite-backed store) as a
+  starting point, replace its instructions/capabilities, run it as its
+  own A2A server (own port, own `A2A_HOST` in `docker-compose.yml`), and
+  register it with a `RemoteA2aAgent(...)` entry in
   `orchestrator/agent.py`'s `sub_agents=[...]`.
 
 The system instructions in `orchestrator/prompts.py` already generalize to
