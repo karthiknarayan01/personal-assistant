@@ -205,24 +205,3 @@ multi-terminal startup.
 - **Every non-emergency response ends with a disclaimer**: these are
   traditional/home remedies, not a substitute for professional medical
   advice, see a doctor if symptoms are severe, persist, or don't improve.
-
-## Adding more capabilities
-
-- **New tool** (something the orchestrator itself calls directly, rather
-  than delegating to a specialist): add an MCP server package under a new
-  `mcp_servers/<name>/` directory (a plain Python function with the
-  actual logic + a thin `server.py` wrapping it for MCP, spawned via
-  `MCPToolset` + `StdioConnectionParams` — see git history around commit
-  `e68a8a4` for a worked example before the calendar tool was removed),
-  then register it in `orchestrator/agent.py`'s `tools=[...]`.
-- **New sub-agent:** copy an existing package under `sub_agents/` (e.g.
-  `sub_agents/remedy_agent/` for the simplest one with no persistent
-  state, or any of the others for one with a SQLite-backed store) as a
-  starting point, replace its instructions/capabilities, run it as its
-  own A2A server (own port, own `A2A_HOST` in `docker-compose.yml`), and
-  register it with a `RemoteA2aAgent(...)` entry in
-  `orchestrator/agent.py`'s `sub_agents=[...]`.
-
-The system instructions in `orchestrator/prompts.py` already generalize to
-"whatever is registered" — they shouldn't need to change as capabilities
-are added.
