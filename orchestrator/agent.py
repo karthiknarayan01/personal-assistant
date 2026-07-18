@@ -5,13 +5,13 @@ from google.adk.agents.remote_a2a_agent import (
     AGENT_CARD_WELL_KNOWN_PATH,
     RemoteA2aAgent,
 )
+from google.adk.models.lite_llm import LiteLlm
+from google.genai import types
 
 from .prompts import ORCHESTRATOR_INSTRUCTION
 
-_JOB_AGENT_URL = os.environ.get(
-    "JOB_AGENT_CARD_URL",
-    f"http://localhost:8002{AGENT_CARD_WELL_KNOWN_PATH}",
-)
+_OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:14b")
+_OLLAMA_API_BASE = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
 
 _SHOPPING_AGENT_URL = os.environ.get(
     "SHOPPING_AGENT_CARD_URL",
@@ -21,20 +21,6 @@ _SHOPPING_AGENT_URL = os.environ.get(
 _REMEDY_AGENT_URL = os.environ.get(
     "REMEDY_AGENT_CARD_URL",
     f"http://localhost:8004{AGENT_CARD_WELL_KNOWN_PATH}",
-)
-
-# A2A sub-agent: a separate process (see sub_agents/job_agent/server.py)
-# that must already be running at _JOB_AGENT_URL.
-job_agent = RemoteA2aAgent(
-    name="job_agent",
-    description=(
-        "Searches Handshake for matching software engineering roles and "
-        "applies on the user's behalf, with a mandatory human review step "
-        "before any application is actually submitted. See "
-        "sub_agents/job_agent/ for setup and current limitations."
-    ),
-    agent_card=_JOB_AGENT_URL,
-    use_legacy=False,
 )
 
 # A2A sub-agent: a separate process (see sub_agents/shopping_agent/server.py)
@@ -67,12 +53,13 @@ remedy_agent = RemoteA2aAgent(
 )
 
 root_agent = Agent(
-    model="gemini-flash-latest",
+    model=LiteLlm(model=f"ollama_chat/{_OLLAMA_MODEL}", api_base=_OLLAMA_API_BASE),
+    generate_content_config=types.GenerateContentConfig(temperature=0.0),
     name="orchestrator",
     description=(
         "Orchestrator that executes tasks given directly by the user, "
         "strictly limited to its registered tools and sub-agents."
     ),
     instruction=ORCHESTRATOR_INSTRUCTION,
-    sub_agents=[job_agent, shopping_agent, remedy_agent],
+    sub_agents=[shopping_agent, remedy_agent],
 )

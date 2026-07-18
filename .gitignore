@@ -6,12 +6,6 @@ __pycache__/
 # secrets
 orchestrator/.env
 
-# job_agent local data / session profiles (PII)
-sub_agents/job_agent/data/*
-!sub_agents/job_agent/data/.gitkeep
-sub_agents/job_agent/browser_profiles/*
-!sub_agents/job_agent/browser_profiles/.gitkeep
-
 # shopping_agent local data (PII: purchase history, measurements)
 sub_agents/shopping_agent/data/*
 !sub_agents/shopping_agent/data/.gitkeep
@@ -19,3 +13,4 @@ sub_agents/shopping_agent/data/*
 # remedy_agent local data (curated knowledge base)
 sub_agents/remedy_agent/data/*
 !sub_agents/remedy_agent/data/.gitkeep
+orchestrator/.adk/

@@ -38,7 +38,7 @@ asking only for what's missing:
 Once you have enough to search:
 - Call search_slickdeals with a query built from the request (item,
   gender, style) to find active deals.
-- Use google_search for reviews and ratings (e.g. "best rated men's
+- Use web_search for reviews and ratings (e.g. "best rated men's
   chinos 2026", "[brand] [product] review") and for retailers/prices
   search_slickdeals didn't surface — never invent a product, price, or
   rating you didn't actually find via a tool.

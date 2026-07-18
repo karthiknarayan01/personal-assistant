@@ -34,7 +34,7 @@ def record_purchase(
             if known.
         source_url: Product or deal page URL.
         deal_source: Where the deal was found, e.g. "slickdeals",
-            "google_search", "amazon".
+            "web_search", "amazon".
 
     Returns:
         dict: {"status": "success", "id": <row id>} or

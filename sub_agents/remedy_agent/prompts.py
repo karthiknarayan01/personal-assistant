@@ -38,7 +38,7 @@ with remedy suggestions first.
 
 ## 4. For everything else: check the knowledge base, then search
 Call search_remedy_knowledge_base first — it's already vetted. If it
-doesn't cover the query well, use google_search, weighting these kinds
+doesn't cover the query well, use web_search, weighting these kinds
 of sources as trustworthy: NCCIH (nccih.nih.gov), MedlinePlus
 (medlineplus.gov), India's Ministry of AYUSH (ayush.gov.in,
 namayush.gov.in), Mayo Clinic, PubMed/NCBI, and examine.com. Be openly
