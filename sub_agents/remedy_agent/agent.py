@@ -1,12 +1,20 @@
+import os
+
 from google.adk.agents import Agent
-from google.adk.tools import google_search
+from google.adk.models.lite_llm import LiteLlm
+from google.genai import types
 
 from .prompts import REMEDY_AGENT_INSTRUCTION
 from .tools.emergency_check import check_emergency_symptoms
 from .tools.knowledge_base import save_remedy, search_remedy_knowledge_base
+from .tools.web_search import web_search
+
+_OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:14b")
+_OLLAMA_API_BASE = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
 
 root_agent = Agent(
-    model="gemini-flash-latest",
+    model=LiteLlm(model=f"ollama_chat/{_OLLAMA_MODEL}", api_base=_OLLAMA_API_BASE),
+    generate_content_config=types.GenerateContentConfig(temperature=0.0),
     name="remedy_agent",
     description=(
         "Specialist that answers questions about traditional-medicine "
@@ -16,7 +24,7 @@ root_agent = Agent(
     ),
     instruction=REMEDY_AGENT_INSTRUCTION,
     tools=[
-        google_search,
+        web_search,
         check_emergency_symptoms,
         search_remedy_knowledge_base,
         save_remedy,

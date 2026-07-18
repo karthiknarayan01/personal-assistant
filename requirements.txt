@@ -1,7 +1,6 @@
 google-adk[a2a]
+litellm
+ddgs
 sse-starlette
 python-dotenv
 uvicorn
-playwright
-pypdf
-python-docx

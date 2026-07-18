@@ -155,7 +155,7 @@ def search_remedy_knowledge_base(query: str) -> dict:
 
     Always check this before doing a live web search — it's faster and
     already vetted. If nothing relevant comes back, fall back to
-    google_search against reputable sources, and consider save_remedy
+    web_search against reputable sources, and consider save_remedy
     afterward to grow this for next time.
 
     Args:

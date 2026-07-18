@@ -18,7 +18,7 @@ _THUMB_SCORE_RE = re.compile(r"Thumb Score:\s*([+-]?\d+)")
 def search_slickdeals(query: str, limit: int = 10) -> dict:
     """Searches Slickdeals for deals matching a query.
 
-    Always check this when deal-hunting, alongside google_search for
+    Always check this when deal-hunting, alongside web_search for
     reviews/ratings/price context — never invent or guess deals.
 
     Args:
