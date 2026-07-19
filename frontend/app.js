@@ -95,9 +95,19 @@ async function runTurn(sessionId, userText, onEvent) {
   }
 }
 
+function setLoading(isLoading) {
+  document.getElementById("loading-indicator").hidden = !isLoading;
+  document.getElementById("send-btn").disabled = isLoading;
+  document.getElementById("prompt-input").disabled = isLoading;
+  if (!isLoading) {
+    document.getElementById("prompt-input").focus();
+  }
+}
+
 async function submitPrompt(text) {
   clearError();
   appendChatBubble("user", text);
+  setLoading(true);
 
   const sessionId = await ensureSession();
   const deals = new Map();
@@ -129,6 +139,8 @@ async function submitPrompt(text) {
       `Could not reach the orchestrator at ${ORCH_BASE} — is it running? (${e.message})`
     );
     return;
+  } finally {
+    setLoading(false);
   }
 
   if (deals.size > 0) {

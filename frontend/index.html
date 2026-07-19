@@ -16,6 +16,11 @@
 
     <section id="chat-log" class="chat-log"></section>
 
+    <div id="loading-indicator" class="loading-indicator" hidden>
+      <span class="spinner"></span>
+      Thinking&hellip;
+    </div>
+
     <section id="cards-view" class="cards-view" hidden>
       <div id="cards-grid" class="cards-grid"></div>
     </section>
@@ -28,7 +33,7 @@
 
   <form id="prompt-form" class="prompt-form">
     <input id="prompt-input" type="text" placeholder="I want to buy running shoes, men's size 10" autocomplete="off">
-    <button type="submit">Send</button>
+    <button id="send-btn" type="submit">Send</button>
   </form>
 
   <script src="app.js"></script>
