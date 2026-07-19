@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>personal-assistant</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>personal-assistant</h1>
+    <p class="subtitle">Ask for deals or remedies. Deal results show up as cards you can browse.</p>
+  </header>
+
+  <main>
+    <div id="error-banner" class="error-banner" hidden></div>
+
+    <section id="chat-log" class="chat-log"></section>
+
+    <section id="cards-view" class="cards-view" hidden>
+      <div id="cards-grid" class="cards-grid"></div>
+    </section>
+
+    <section id="details-view" class="details-view" hidden>
+      <button id="back-btn" type="button" class="back-btn">&larr; Back to suggestions</button>
+      <div id="details-content" class="details-content"></div>
+    </section>
+  </main>
+
+  <form id="prompt-form" class="prompt-form">
+    <input id="prompt-input" type="text" placeholder="I want to buy running shoes, men's size 10" autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
+
+  <script src="app.js"></script>
+</body>
+</html>

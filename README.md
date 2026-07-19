@@ -42,6 +42,16 @@ dropdown, and type a prompt:
 - *"I want to buy some chinos"*
 - *"Is there a natural remedy for a sore throat?"*
 
+**4. (Optional) Try the friendlier deal-cards frontend**
+
+A separate plain HTML/CSS/JS frontend (`frontend/`) turns
+`shopping_agent`'s deal results into clickable cards instead of a wall
+of text — already started by `docker compose up --build`. Open
+**http://localhost:8080** and type *"I want to buy running shoes, size
+10"*. Click a card for a bigger image and a "Buy at retailer" link that
+opens the real retailer page in a new tab — no payment info is ever
+collected, there's still no purchase/checkout tool anywhere in this repo.
+
 Stop with `docker compose down`.
 
 <details>
@@ -51,7 +61,8 @@ From a venv with `pip install -r requirements.txt`:
 ```bash
 uvicorn sub_agents.shopping_agent.server:a2a_app --port 8003 &
 uvicorn sub_agents.remedy_agent.server:a2a_app --port 8004 &
-adk web --port 8000
+adk web --port 8000 --allow_origins http://localhost:8080
+python3 -m http.server 8080 --directory frontend
 ```
 </details>
 
