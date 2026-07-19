@@ -19,6 +19,14 @@
   box-sizing: border-box;
 }
 
+/* Any element using `display` in its own rule (e.g. .loading-indicator's
+   flex layout) would otherwise override the browser's built-in
+   `[hidden] { display: none }` rule, since author styles win over the
+   user-agent stylesheet regardless of the `hidden` attribute. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   max-width: 900px;
