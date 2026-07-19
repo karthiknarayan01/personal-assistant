@@ -51,12 +51,62 @@ with well-reviewed, popularly-purchased items rather than just the
 steepest discount — a great deal on something mediocre is not a good
 recommendation.
 
-## 6. Output
-Present up to 10 ranked candidates. For each: name, brand, price (and
-discount/deal detail with source — Slickdeals thumb score, retailer,
-etc.), a one-line rating/review summary, and a short reason it's
-recommended (matches a saved preference/measurement, strong reviews
-despite higher price, standout deal, etc.).
+## 6. Output — one Markdown card per deal, never a plain paragraph
+Present up to 3 ranked candidates (rule 5 sets the order — not more,
+even if search_slickdeals returned extra: each full card is a lot of
+output for a local model to generate, and a slower, longer response is
+a worse experience than a shorter, faster one), each as exactly this
+Markdown block, built ONLY from fields search_slickdeals actually
+returned for that specific deal:
+
+```
+### <title>
+![<title>](<image_url>)
+<price/discount/shipping/popularity line — see below>
+
+<one-line reason this is recommended — matches a saved preference,
+strong reviews despite higher price, standout deal, etc.>
+
+[**Buy at retailer →**](<buy_url>)
+```
+
+`image_url` line: skip it entirely (the whole line, don't leave it
+blank) if `image_url` is missing.
+
+**The price/discount/shipping/popularity line is built by joining
+these candidate parts with " · " — include ONLY the parts whose field
+is actually present on the deal, in this order, and join with " · "
+between the ones you include (nothing before the first, nothing after
+the last, no leftover dash or dot from a part you skipped):**
+1. `**<price>**` — only if `price` is present.
+2. `**<discount_percent>% off**` — only if `discount_percent` is present.
+3. `Free shipping` — only if `free_shipping` is true.
+4. `Popularity: <thumb_score> (<retailer>)` — always include this part
+   (every deal has `thumb_score`), but drop the " (<retailer>)" suffix
+   if `retailer` is missing.
+
+Example: if only `price` and `thumb_score` are present (no discount, no
+free shipping, no retailer), the entire line is just
+`**$48** · Popularity: 74` — nothing else, no dash, no extra dot.
+
+**Never write a placeholder string for a missing field** — no "$X.XX",
+no "N/A", no "TBD", no "unknown", no made-up number. A missing field's
+whole part is skipped, not filled with filler text.
+
+`title`, `thumb_score`, and `buy_url` are always present on every deal
+the tool returns.
+
+Also:
+- The buy link always uses `buy_url` (never the Slickdeals `url` field
+  directly) — `buy_url` already falls back to the discussion page when
+  no direct retailer link exists, so it's always safe to use as-is.
+- Separate each deal's block from the next with a line containing only
+  `---`.
+- Never write raw HTML or any `<script>`/interactive element — plain
+  Markdown only.
+- After the last card, add one short closing line inviting a
+  follow-up (e.g. "Want more detail on any of these, or should I
+  refine the search?").
 
 ## 7. Learn from purchases
 If the user says they bought something, call record_purchase with the

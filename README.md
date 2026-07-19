@@ -9,8 +9,8 @@ a local open-source model served by [Ollama](https://ollama.com).
 - **shopping_agent** — finds clothing deals, recommends products, remembers your sizes/brands. Recommends only, never buys.
 - **remedy_agent** — traditional (Ayurveda/TCM) remedies for everyday complaints. Screens for medical emergencies first, always ends with a doctor disclaimer.
 
-![shopping_agent routing a running-shoes request to real deal search](image.png)
-![remedy_agent routing a sore-throat question to its knowledge base](image-1.png)
+![shopping_agent](image-2.png)
+![remedy_agent](image-3.png)
 
 
 ## Quick start
